@@ -5,7 +5,7 @@ import time
 import threading
 import os
 import numpy as np
-import sounddevice as sd
+import pygame
 
 class SoundApp:
     def __init__(self, root):
@@ -17,6 +17,7 @@ class SoundApp:
 
         self.create_widgets()
         self.sample_rate = 44100
+        pygame.mixer.init()
 
     def create_widgets(self):
         tk.Label(self.root, text="Frequency 1 (seconds):").grid(row=0, column=0)
@@ -37,9 +38,9 @@ class SoundApp:
         self.stop_button.grid(row=3, column=1)
 
     def select_file(self):
-        self.filepath = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv"), ("All files", "*.*")])
+        self.filepath = filedialog.asksaveasfilename(initialdir='./data', defaultextension='.csv', filetypes=[('CSV files', '*.csv'), ('All files', '*.*')])
         if not os.path.exists(self.filepath):
-            timestamp = time.strftime("_%Y%m%d_%H%M%S")
+            timestamp = time.strftime('_%Y%m%d_%H%M%S')
             base, ext = os.path.splitext(self.filepath)
             self.filepath = base + timestamp + ext
             open(self.filepath, 'w').close()
@@ -68,7 +69,7 @@ class SoundApp:
         self.is_running = False
         self.thread1.join()
         self.thread2.join()
-        self.root.quit()
+        # self.root.quit()  # Commented out to prevent app shutdown
 
     def play_sound(self, sound_number, frequency, initial_offset=0):
         time.sleep(initial_offset)  # Offset the start time of the sound
@@ -85,10 +86,18 @@ class SoundApp:
             time.sleep(frequency - 0.5)  # Adjust sleep time to account for sound duration
 
     def generate_sound(self, freq, duration):
-        t = np.linspace(0, duration, int(self.sample_rate * duration), endpoint=False)
-        wave = 0.5 * np.sin(2 * np.pi * freq * t)
-        sd.play(wave, self.sample_rate)
-        sd.wait()
+        sample_rate = 44100
+        n_samples = int(sample_rate * duration)
+        buf = np.zeros((n_samples, 2), dtype=np.int16)
+        max_sample = 2**15 - 1
+        for s in range(n_samples):
+            t = float(s) / sample_rate
+            buf[s][0] = int(max_sample * 0.5 * np.sin(2.0 * np.pi * freq * t))  # Left channel
+            buf[s][1] = int(max_sample * 0.5 * np.sin(2.0 * np.pi * freq * t))  # Right channel
+        sound = pygame.sndarray.make_sound(buf)
+        sound.play()
+        pygame.time.delay(int(duration * 1000))
+        sound.stop()
 
     def record_to_csv(self, timestamp, sound_number):
         with open(self.filepath, "a", newline="") as csvfile:
