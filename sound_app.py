@@ -6,6 +6,7 @@ import threading
 import os
 import numpy as np
 import pygame
+import json
 
 class SoundApp:
     def __init__(self, root):
@@ -16,6 +17,11 @@ class SoundApp:
         self.is_running = False
         self.count1 = 0
         self.count2 = 0
+        self.thread1 = None
+        self.thread2 = None
+
+        self.config_file = './config.json'
+        self.config = self.load_config()
 
         self.create_widgets()
         self.sample_rate = 44100
@@ -24,64 +30,105 @@ class SoundApp:
         # Bind window closing event
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
+    def load_config(self):
+        if os.path.exists(self.config_file):
+            with open(self.config_file, 'r') as f:
+                return json.load(f)
+        return {"freq1": 440, "freq2": 880, "interval1": 2, "interval2": 3}
+
+    def save_config(self):
+        with open(self.config_file, 'w') as f:
+            json.dump(self.config, f)
+
     def create_widgets(self):
-        tk.Label(self.root, text="Frequency 1 (seconds):").grid(row=0, column=0)
+        tk.Label(self.root, text="Frequency 1 (Hz):").grid(row=0, column=0)
         self.freq1_entry = tk.Entry(self.root)
         self.freq1_entry.grid(row=0, column=1)
-        self.freq1_count_label = tk.Label(self.root, text="Count: 0")
-        self.freq1_count_label.grid(row=0, column=2)
+        self.freq1_entry.insert(0, self.config.get("freq1", 440))
+        self.freq1_entry.bind("<KeyRelease>", self.update_config)
 
-        tk.Label(self.root, text="Frequency 2 (seconds):").grid(row=1, column=0)
+        tk.Label(self.root, text="Interval 1 (s):").grid(row=0, column=2)
+        self.interval1_entry = tk.Entry(self.root)
+        self.interval1_entry.grid(row=0, column=3)
+        self.interval1_entry.insert(0, self.config.get("interval1", 1))
+        self.interval1_entry.bind("<KeyRelease>", self.update_config)
+
+        tk.Label(self.root, text="Frequency 2 (Hz):").grid(row=1, column=0)
         self.freq2_entry = tk.Entry(self.root)
         self.freq2_entry.grid(row=1, column=1)
+        self.freq2_entry.insert(0, self.config.get("freq2", 880))
+        self.freq2_entry.bind("<KeyRelease>", self.update_config)
+
+        tk.Label(self.root, text="Interval 2 (s):").grid(row=1, column=2)
+        self.interval2_entry = tk.Entry(self.root)
+        self.interval2_entry.grid(row=1, column=3)
+        self.interval2_entry.insert(0, self.config.get("interval2", 1))
+        self.interval2_entry.bind("<KeyRelease>", self.update_config)
+
+        self.freq1_count_label = tk.Label(self.root, text="Count: 0")
+        self.freq1_count_label.grid(row=0, column=4)
+
         self.freq2_count_label = tk.Label(self.root, text="Count: 0")
-        self.freq2_count_label.grid(row=1, column=2)
+        self.freq2_count_label.grid(row=1, column=4)
 
         self.file_button = tk.Button(self.root, text="Select File", command=self.select_file)
-        self.file_button.grid(row=2, column=0, columnspan=2)
+        self.file_button.grid(row=2, column=0, columnspan=4)
 
         self.file_label = tk.Label(self.root, text="File: ")
-        self.file_label.grid(row=3, column=0, columnspan=2)
+        self.file_label.grid(row=3, column=0, columnspan=4)
 
         self.start_button = tk.Button(self.root, text="Start", command=self.start)
-        self.start_button.grid(row=4, column=0)
+        self.start_button.grid(row=4, column=0, columnspan=2)
 
         self.stop_button = tk.Button(self.root, text="Stop", command=self.stop)
-        self.stop_button.grid(row=4, column=1)
+        self.stop_button.grid(row=4, column=2, columnspan=2)
+
+    def update_config(self, event):
+        try:
+            self.config["freq1"] = float(self.freq1_entry.get())
+            self.config["freq2"] = float(self.freq2_entry.get())
+            self.config["interval1"] = float(self.interval1_entry.get())
+            self.config["interval2"] = float(self.interval2_entry.get())
+            self.save_config()
+        except ValueError:
+            pass
 
     def select_file(self):
         self.filepath = filedialog.asksaveasfilename(initialdir='./data', defaultextension='.csv', filetypes=[('CSV files', '*.csv'), ('All files', '*.*')])
+        timestamp = time.strftime('_sound_%Y%m%d_%H%M%S')
         if not self.filepath:
-            self.filepath = './data/test'
-        if not os.path.exists(self.filepath):
-            timestamp = time.strftime('_sound_%Y%m%d_%H%M%S')
+            self.filepath = f'./data/test{timestamp}.csv'  # Add timestamp and .csv extension
+        else:
             base, ext = os.path.splitext(self.filepath)
-            self.filepath = base + timestamp + ext
+            if ext.lower() != '.csv':
+                self.filepath = base + timestamp + '.csv'  # Ensure timestamp and .csv extension
+            elif timestamp not in base:  # Avoid appending timestamp if already present
+                self.filepath = base + timestamp + ext
+        if not os.path.exists(self.filepath):
             open(self.filepath, 'w').close()
-        self.file_label.config(text=f"File: {self.filepath}")
+        self.file_label.config(text=f"File: {os.path.basename(self.filepath)}")  # Display only the filename
+        # self.count1 = 0  # Reset count when a new file is selected
+        # self.count2 = 0  # Reset count when a new file is selected
 
     def start(self):
         if not self.filepath:
-            self.filepath = './data/test'
-        if not os.path.exists(self.filepath):
             timestamp = time.strftime('_sound_%Y%m%d_%H%M%S')
-            base, ext = os.path.splitext(self.filepath)
-            self.filepath = base + timestamp + ext
-            open(self.filepath, 'w').close()
-        self.file_label.config(text=f"File: {self.filepath}")
-
+            self.filepath = f'./data/test{timestamp}.csv'  # Add timestamp and .csv extension
+        self.file_label.config(text=f"File: {os.path.basename(self.filepath)}")  # Display only the filename
         try:
             self.freq1 = float(self.freq1_entry.get())
             self.freq2 = float(self.freq2_entry.get())
+            self.interval1 = float(self.interval1_entry.get())
+            self.interval2 = float(self.interval2_entry.get())
         except ValueError:
-            tk.messagebox.showerror("Error", "Please enter valid frequencies.")
+            tk.messagebox.showerror("Error", "Please enter valid frequencies and intervals.")
             return
 
         self.is_running = True
-        self.count1 = 0
-        self.count2 = 0
-        self.thread1 = threading.Thread(target=self.play_sound, args=(1, self.freq1, 0))
-        self.thread2 = threading.Thread(target=self.play_sound, args=(2, self.freq2, 0.5))  # Offset by the duration of the first sound
+        self.count1 = 1  # Start count at 1
+        self.count2 = 1  # Start count at 1
+        self.thread1 = threading.Thread(target=self.play_sound, args=(1, self.freq1, self.interval1, 0))
+        self.thread2 = threading.Thread(target=self.play_sound, args=(2, self.freq2, self.interval2, 0.5))  # Offset by the duration of the first sound
         self.thread1.start()
         self.thread2.start()
 
@@ -91,21 +138,21 @@ class SoundApp:
         self.thread2.join()
         # self.root.quit()  # Commented out to prevent app shutdown
 
-    def play_sound(self, sound_number, frequency, initial_offset=0):
+    def play_sound(self, sound_number, frequency, interval, initial_offset=0):
         time.sleep(initial_offset)  # Offset the start time of the sound
         while self.is_running:
             timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
             self.record_to_csv(timestamp, sound_number)
             if sound_number == 1:
-                self.count1 += 1
                 self.freq1_count_label.config(text=f"Count: {self.count1}")
                 print(f"Sound {sound_number} played at {timestamp} - Count: {self.count1}")
+                self.count1 += 1
             else:
-                self.count2 += 1
                 self.freq2_count_label.config(text=f"Count: {self.count2}")
                 print(f"Sound {sound_number} played at {timestamp} - Count: {self.count2}")
-            self.generate_sound(440 * sound_number, 0.5)  # Generate sound at 440Hz * sound_number for 0.5 seconds
-            time.sleep(frequency - 0.5)  # Adjust sleep time to account for sound duration
+                self.count2 += 1
+            self.generate_sound(frequency, 0.5)  # Generate sound at the specified frequency for 0.5 seconds
+            time.sleep(interval - 0.5)  # Adjust sleep time to account for sound duration
 
     def generate_sound(self, freq, duration):
         sample_rate = 44100
@@ -130,7 +177,11 @@ class SoundApp:
                 writer.writerow([timestamp, sound_number, self.count2])
 
     def on_closing(self):
-        self.stop()
+        self.is_running = False
+        if self.thread1 and self.thread1.is_alive():
+            self.thread1.join()
+        if self.thread2 and self.thread2.is_alive():
+            self.thread2.join()
         self.root.destroy()
 
 if __name__ == "__main__":

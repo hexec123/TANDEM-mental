@@ -36,13 +36,15 @@ class FlagRecorderApp:
         self.textbox.grid(row=3, column=1)
 
     def select_file(self):
-        self.filepath = filedialog.askopenfilename(initialdir='./data', defaultextension='.csv', filetypes=[('CSV files', '*.csv'), ('All files', '*.*')])
+        self.filepath = filedialog.asksaveasfilename(initialdir='./data', defaultextension='.csv', filetypes=[('CSV files', '*.csv'), ('All files', '*.*')])
         if not self.filepath:
             self.filepath = './data/test'
+        base, ext = os.path.splitext(self.filepath)
+        if ext.lower() != '.csv':
+            self.filepath += '.csv'
         if not os.path.exists(self.filepath):
             timestamp = time.strftime('_flag_%Y%m%d_%H%M%S')
-            base, ext = os.path.splitext(self.filepath)
-            self.filepath = base + timestamp + ext
+            self.filepath = base + timestamp + '.csv'
             open(self.filepath, 'w').close()
         self.file_label.config(text=f"File: {self.filepath}")
 
