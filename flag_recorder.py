@@ -37,26 +37,34 @@ class FlagRecorderApp:
 
     def select_file(self):
         self.filepath = filedialog.asksaveasfilename(initialdir='./data', defaultextension='.csv', filetypes=[('CSV files', '*.csv'), ('All files', '*.*')])
+        timestamp = time.strftime('_flag_%Y%m%d_%H%M%S')
+        self.flag_count = 0
         if not self.filepath:
-            self.filepath = './data/test'
-        base, ext = os.path.splitext(self.filepath)
-        if ext.lower() != '.csv':
-            self.filepath += '.csv'
+            self.filepath = f'./data/test{timestamp}.csv'  # Add timestamp and .csv extension
+        else:
+            base, ext = os.path.splitext(self.filepath)
+            if ext.lower() != '.csv':
+                self.filepath = base + timestamp + '.csv'  # Ensure timestamp and .csv extension
+            elif timestamp not in base:  # Avoid appending timestamp if already present
+                self.filepath = base + timestamp + ext
         if not os.path.exists(self.filepath):
-            timestamp = time.strftime('_flag_%Y%m%d_%H%M%S')
-            self.filepath = base + timestamp + '.csv'
             open(self.filepath, 'w').close()
-        self.file_label.config(text=f"File: {self.filepath}")
+        self.file_label.config(text=f"File: {os.path.basename(self.filepath)}")  # Display only the filename
+
 
     def record_flag(self):
         if not self.filepath:
-            self.filepath = './data/test'
-        if not os.path.exists(self.filepath):
             timestamp = time.strftime('_flag_%Y%m%d_%H%M%S')
-            base, ext = os.path.splitext(self.filepath)
-            self.filepath = base + timestamp + ext
-            open(self.filepath, 'w').close()
-        self.file_label.config(text=f"File: {self.filepath}")
+            self.filepath = f'./data/test{timestamp}.csv'  # Add timestamp and .csv extension
+        self.file_label.config(text=f"File: {os.path.basename(self.filepath)}")  # Display only the filename
+        # if not self.filepath:
+        #     self.filepath = './data/test'
+        # if not os.path.exists(self.filepath):
+        #     timestamp = time.strftime('_flag_%Y%m%d_%H%M%S')
+        #     base, ext = os.path.splitext(self.filepath)
+        #     self.filepath = base + timestamp + ext
+        #     open(self.filepath, 'w').close()
+        # self.file_label.config(text=f"File: {self.filepath}")
 
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         self.flag_count += 1

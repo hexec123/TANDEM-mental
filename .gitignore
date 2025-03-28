@@ -1,8 +1,8 @@
 # Ignore all files in the data folder
-data/
+data/*
 
 # Ignore all files in the virtual environment
-venv/
+.venv/
 
 # Ignore configuration files
 *.env
