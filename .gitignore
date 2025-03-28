@@ -1,2 +1,9 @@
 # Ignore all files in the data folder
 data/
+
+# Ignore all files in the virtual environment
+venv/
+
+# Ignore configuration files
+*.env
+*.json
