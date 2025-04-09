@@ -9,12 +9,12 @@ import time
 import threading
 import sys
 
-# Dynamically add the Polar_Lib directory to the Python path
-current_dir = os.path.dirname(os.path.abspath(__file__))
-polar_lib_path = os.path.join(current_dir, '../cta_das_library/Polar_Lib')
-sys.path.append(os.path.normpath(polar_lib_path))
+# # Dynamically add the Polar_Lib directory to the Python path
+# current_dir = os.path.dirname(os.path.abspath(__file__))
+# polar_lib_path = os.path.join(current_dir, '../cta_das_library/Polar_Lib')
+# sys.path.append(os.path.normpath(polar_lib_path))
 
-from PolarLib import DeviceH10
+from Polar_Lib.PolarLib import DeviceH10
 
 class ECGApp:
     def __init__(self, root):
