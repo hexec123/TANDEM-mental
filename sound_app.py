@@ -8,6 +8,7 @@ import numpy as np
 import pygame
 import json
 
+
 class SoundApp:
     def __init__(self, root):
         self.root = root
@@ -107,8 +108,6 @@ class SoundApp:
         if not os.path.exists(self.filepath):
             open(self.filepath, 'w').close()
         self.file_label.config(text=f"File: {os.path.basename(self.filepath)}")  # Display only the filename
-        # self.count1 = 0  # Reset count when a new file is selected
-        # self.count2 = 0  # Reset count when a new file is selected
 
     def start(self):
         if not self.filepath:
@@ -136,7 +135,6 @@ class SoundApp:
         self.is_running = False
         self.thread1.join()
         self.thread2.join()
-        # self.root.quit()  # Commented out to prevent app shutdown
 
     def play_sound(self, sound_number, frequency, interval, initial_offset=0):
         time.sleep(initial_offset)  # Offset the start time of the sound
