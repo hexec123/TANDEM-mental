@@ -48,11 +48,15 @@ class SoundApp:
         self.freq1_entry.insert(0, self.config.get("freq1", 440))
         self.freq1_entry.bind("<KeyRelease>", self.update_config)
 
-        tk.Label(self.root, text="Interval 1 (s):").grid(row=0, column=2)
-        self.interval1_entry = tk.Entry(self.root)
-        self.interval1_entry.grid(row=0, column=3)
-        self.interval1_entry.insert(0, self.config.get("interval1", 1))
-        self.interval1_entry.bind("<KeyRelease>", self.update_config)
+        tk.Label(self.root, text="Delay 1 min (s):").grid(row=0, column=2)
+        self.delay1_min_entry = tk.Entry(self.root)
+        self.delay1_min_entry.grid(row=0, column=3)
+        self.delay1_min_entry.insert(0, "2")
+
+        tk.Label(self.root, text="Delay 1 max (s):").grid(row=0, column=4)
+        self.delay1_max_entry = tk.Entry(self.root)
+        self.delay1_max_entry.grid(row=0, column=5)
+        self.delay1_max_entry.insert(0, "5")
 
         tk.Label(self.root, text="Frequency 2 (Hz):").grid(row=1, column=0)
         self.freq2_entry = tk.Entry(self.root)
@@ -60,29 +64,33 @@ class SoundApp:
         self.freq2_entry.insert(0, self.config.get("freq2", 880))
         self.freq2_entry.bind("<KeyRelease>", self.update_config)
 
-        tk.Label(self.root, text="Interval 2 (s):").grid(row=1, column=2)
-        self.interval2_entry = tk.Entry(self.root)
-        self.interval2_entry.grid(row=1, column=3)
-        self.interval2_entry.insert(0, self.config.get("interval2", 1))
-        self.interval2_entry.bind("<KeyRelease>", self.update_config)
+        tk.Label(self.root, text="Delay 2 min (s):").grid(row=1, column=2)
+        self.delay2_min_entry = tk.Entry(self.root)
+        self.delay2_min_entry.grid(row=1, column=3)
+        self.delay2_min_entry.insert(0, "3")
+
+        tk.Label(self.root, text="Delay 2 max (s):").grid(row=1, column=4)
+        self.delay2_max_entry = tk.Entry(self.root)
+        self.delay2_max_entry.grid(row=1, column=5)
+        self.delay2_max_entry.insert(0, "7")
 
         self.freq1_count_label = tk.Label(self.root, text="Count: 0")
-        self.freq1_count_label.grid(row=0, column=4)
+        self.freq1_count_label.grid(row=0, column=6)
 
         self.freq2_count_label = tk.Label(self.root, text="Count: 0")
-        self.freq2_count_label.grid(row=1, column=4)
+        self.freq2_count_label.grid(row=1, column=6)
 
         self.file_button = tk.Button(self.root, text="Select File", command=self.select_file)
-        self.file_button.grid(row=2, column=0, columnspan=4)
+        self.file_button.grid(row=2, column=0, columnspan=6)
 
         self.file_label = tk.Label(self.root, text="File: ")
-        self.file_label.grid(row=3, column=0, columnspan=4)
+        self.file_label.grid(row=3, column=0, columnspan=6)
 
         self.start_button = tk.Button(self.root, text="Start", command=self.start)
-        self.start_button.grid(row=4, column=0, columnspan=2)
+        self.start_button.grid(row=4, column=0, columnspan=3)
 
         self.stop_button = tk.Button(self.root, text="Stop", command=self.stop)
-        self.stop_button.grid(row=4, column=2, columnspan=2)
+        self.stop_button.grid(row=4, column=3, columnspan=3)
 
     def update_config(self, event):
         try:
@@ -117,17 +125,19 @@ class SoundApp:
         try:
             self.freq1 = float(self.freq1_entry.get())
             self.freq2 = float(self.freq2_entry.get())
-            self.interval1 = float(self.interval1_entry.get())
-            self.interval2 = float(self.interval2_entry.get())
+            self.delay1_min = float(self.delay1_min_entry.get())
+            self.delay1_max = float(self.delay1_max_entry.get())
+            self.delay2_min = float(self.delay2_min_entry.get())
+            self.delay2_max = float(self.delay2_max_entry.get())
         except ValueError:
-            tk.messagebox.showerror("Error", "Please enter valid frequencies and intervals.")
+            tk.messagebox.showerror("Error", "Please enter valid frequencies and delays.")
             return
 
         self.is_running = True
         self.count1 = 1  # Start count at 1
         self.count2 = 1  # Start count at 1
-        self.thread1 = threading.Thread(target=self.play_sound, args=(1, self.freq1, self.interval1, 0))
-        self.thread2 = threading.Thread(target=self.play_sound, args=(2, self.freq2, self.interval2, 0.5))  # Offset by the duration of the first sound
+        self.thread1 = threading.Thread(target=self.play_sound_random, args=(1, self.freq1, self.delay1_min, self.delay1_max, 0))
+        self.thread2 = threading.Thread(target=self.play_sound_random, args=(2, self.freq2, self.delay2_min, self.delay2_max, 0.5))
         self.thread1.start()
         self.thread2.start()
 
@@ -136,7 +146,8 @@ class SoundApp:
         self.thread1.join()
         self.thread2.join()
 
-    def play_sound(self, sound_number, frequency, interval, initial_offset=0):
+    def play_sound_random(self, sound_number, frequency, delay_min, delay_max, initial_offset=0):
+        import random
         time.sleep(initial_offset)  # Offset the start time of the sound
         while self.is_running:
             timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
@@ -150,7 +161,8 @@ class SoundApp:
                 print(f"Sound {sound_number} played at {timestamp} - Count: {self.count2}")
                 self.count2 += 1
             self.generate_sound(frequency, 0.5)  # Generate sound at the specified frequency for 0.5 seconds
-            time.sleep(interval - 0.5)  # Adjust sleep time to account for sound duration
+            next_delay = random.uniform(delay_min, delay_max)
+            time.sleep(max(0, next_delay - 0.5))  # Ensure non-negative sleep
 
     def generate_sound(self, freq, duration):
         sample_rate = 44100
