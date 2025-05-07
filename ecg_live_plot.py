@@ -8,6 +8,7 @@ import os
 import time
 import threading
 import sys
+import asyncio
 
 # # Dynamically add the Polar_Lib directory to the Python path
 # current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -88,6 +89,13 @@ class ECGApp:
             self.filepath = base + timestamp + ext
         self.filename_label.config(text=os.path.basename(self.filepath))
 
+    async def connect_device(self):
+        try:
+            await self.device.connect_async()
+        except Exception as e:
+            self.is_running = False
+            self.error_message.set(f"Error: {str(e)}")
+
     def start(self):
         if not self.filepath:
             timestamp = time.strftime("_%Y%m%d_%H%M%S")
@@ -97,13 +105,13 @@ class ECGApp:
         self.error_message.set("")  # Clear any previous error messages
 
         try:
-            self.device = DeviceH10("MAC_ADDRESS", debug_mode=False)
+            self.device = DeviceH10("D1:A8:FA:9E:2B:A8", debug_mode=True)
             self.device.received_data_cb = self.process_data
 
-            self.thread = threading.Thread(target=self.device.connect_async)
-            self.thread.start()
+            # Schedule the connect_device coroutine in the event loop
+            asyncio.run_coroutine_threadsafe(self.connect_device(), self.loop)
 
-            self.ani = FuncAnimation(self.fig, self.update_plot, interval=1000)
+            self.ani = FuncAnimation(self.fig, self.update_plot, interval=1000, cache_frame_data=False)
         except Exception as e:
             self.is_running = False
             self.error_message.set(f"Error: {str(e)}")
@@ -160,9 +168,19 @@ class ECGApp:
         self.stop()  # Ensure the script stops when the window is closed
         self.root.destroy()
 
-# Update the main block to bind the on_closing method to the window close event
+    def run_asyncio_loop(self):
+        # Create a new event loop for the thread
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+        self.loop.run_forever()
+
+# Update the main block to integrate asyncio with Tkinter
 if __name__ == "__main__":
     root = tk.Tk()
     app = ECGApp(root)
+
+    # Start the asyncio event loop in a separate thread
+    threading.Thread(target=app.run_asyncio_loop, daemon=True).start()
+
     root.protocol("WM_DELETE_WINDOW", app.on_closing)  # Bind the close event
     root.mainloop()
