@@ -6,9 +6,12 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "bleak>=0.22.3",
+    "ipykernel>=6.29.5",
     "matplotlib>=3.10.1",
     "numpy>=2.2.4",
     "pandas>=2.2.3",
+    "pip>=25.1.1",
     "pygame>=2.6.1",
+    "seaborn>=0.13.2",
     "tk>=0.1.0",
 ]
