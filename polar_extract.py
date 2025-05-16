@@ -55,13 +55,14 @@ class PolarExtractApp:
         df = df.sort_values('Bio_ECG_Timestamp')
         output = []
         sample_rate = 130.0
+        time_add = 1/sample_rate
         for _, row in df.iterrows():
             try:
                 base_ts = float(row['Bio_ECG_Timestamp'])
             except Exception:
                 continue
             for i, col in enumerate(ecg_raw_cols):
-                ts = base_ts + i / sample_rate
+                ts = base_ts + i * time_add
                 val = row[col]
                 if pd.notnull(val):
                     output.append((ts, val))
